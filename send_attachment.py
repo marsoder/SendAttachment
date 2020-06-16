@@ -6,7 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.encoders import encode_base64
 from email.mime.text import MIMEText
-
+from getpass import getpass
 
 # some of the resources I used 
 # https://docs.python.org/2/howto/argparse.html
@@ -48,22 +48,28 @@ def get_mime_message(attachment, sender, recipient):
     multipart.attach(defaulttext_part)
     return multipart.as_string()
 
-
+def parse_user_info():
+    user_email_addresss = input("E-mail address: ")
+    return user_email_addresss, getpass()
+    
 def send_message(message, sender, password, recipient):
     # assuming gmail
     server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
-    server.login(sender, password)
+    try:
+        server.login(sender, password)
+    except(smtplib.SMTPAuthenticationError):
+        print("SMTPAuthenticationError raised, probably need to allow less secure apps to access google account in google settings")
+        sys.exit()
     server.sendmail(sender, recipient, message)
 
 
 if __name__ == "__main__":
-
-    # read user email information from text file
-    # fist line is username, and second line is the password, file must be 
-    # inside the current working directory when using script
-    sender, password = get_login_information("myemailinfo.txt")
+    # input email address and password
+    sender, password = parse_user_info()
     parser = get_parser()
+    # parse command line arguments
     args = parser.parse_args()
     message = get_mime_message(args.attachment, sender, args.recipient)
+    # send message
     send_message(message, sender, password, args.recipient)
